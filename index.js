@@ -3,6 +3,7 @@ import WebSocket from 'ws';
 import dotenv from 'dotenv';
 import fastifyFormBody from '@fastify/formbody';
 import fastifyWs from '@fastify/websocket';
+import twilio from 'twilio';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -15,13 +16,16 @@ if (!OPENAI_API_KEY) {
     process.exit(1);
 }
 
+// Twilio Credentials
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
 // Initialize Fastify
 const fastify = Fastify();
 fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
 
 // Constants
-const SYSTEM_MESSAGE = 'You are a helpful and bubbly AI assistant who loves to chat about anything the user is interested about and is prepared to offer them facts. You have a penchant for dad jokes, owl jokes, and rickrolling – subtly. Always stay positive, but work in a joke when appropriate.';
+const SYSTEM_MESSAGE = 'You are a professional and persuasive sales agent specializing in plastic surgery services. Your goal is to inform potential clients about the benefits and options available, while maintaining a friendly and informative tone. You are knowledgeable about various procedures and can answer questions with confidence. Always aim to build trust and highlight the positive outcomes of the services offered.';
 const VOICE = 'alloy';
 const PORT = process.env.PORT || 5050; // Allow dynamic port assignment
 
@@ -43,16 +47,15 @@ const SHOW_TIMING_MATH = false;
 // Root Route
 fastify.get('/', async (request, reply) => {
     reply.send({ message: 'Twilio Media Stream Server is running!' });
+    console.log('Root route accessed');
 });
 
 // Route for Twilio to handle incoming calls
 // <Say> punctuation to improve text-to-speech translation
 fastify.all('/incoming-call', async (request, reply) => {
+    console.log('Incoming call route accessed');
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
                           <Response>
-                              <Say>Please wait while we connect your call to the A. I. voice assistant, powered by Twilio and the Open-A.I. Realtime API</Say>
-                              <Pause length="1"/>
-                              <Say>O.K. you can start talking!</Say>
                               <Connect>
                                   <Stream url="wss://${request.headers.host}/media-stream" />
                               </Connect>
@@ -99,7 +102,7 @@ fastify.register(async (fastify) => {
             openAiWs.send(JSON.stringify(sessionUpdate));
 
             // Uncomment the following line to have AI speak first:
-            // sendInitialConversationItem();
+            sendInitialConversationItem();
         };
 
         // Send initial conversation item if AI talks first
@@ -112,7 +115,7 @@ fastify.register(async (fastify) => {
                     content: [
                         {
                             type: 'input_text',
-                            text: 'Greet the user with "Hello there! I am an AI voice assistant powered by Twilio and the OpenAI Realtime API. You can ask me for facts, jokes, or anything you can imagine. How can I help you?"'
+                            text: 'Hello! I am your dedicated AI sales agent specializing in plastic surgery services. I am here to provide you with all the information you need about our procedures and how they can benefit you. How can I assist you today?'
                         }
                     ]
                 }
@@ -173,6 +176,7 @@ fastify.register(async (fastify) => {
 
         // Listen for messages from the OpenAI WebSocket (and send to Twilio if necessary)
         openAiWs.on('message', (data) => {
+            console.log('Received message from OpenAI:', data); // Log the raw message
             try {
                 const response = JSON.parse(data);
 
@@ -272,3 +276,22 @@ fastify.listen({ port: PORT }, (err) => {
     }
     console.log(`Server is listening on port ${PORT}`);
 });
+
+// To initiate an outbound call, you can call this function:
+const initiateOutboundCall = async(userPhoneNumber, twilioPhoneNumber) => {
+    try {
+        const call = await twilioClient.calls.create({
+            url: 'https://3d62-144-121-171-106.ngrok-free.app/incoming-call',
+            to: userPhoneNumber,
+            from: twilioPhoneNumber
+        });
+        console.log(`Call initiated with SID: ${call.sid}`);
+    } catch (error) {
+        console.error('Error initiating call:', error);
+    }
+};
+
+// Example usage
+const userPhoneNumber = '+19177174489'; // Replace with the user's number
+const twilioPhoneNumber = '+13058943349'; // Replace with your Twilio number
+initiateOutboundCall(userPhoneNumber, twilioPhoneNumber);
