@@ -294,6 +294,6 @@ const initiateOutboundCall = async(userPhoneNumber, twilioPhoneNumber) => {
 };
 
 // Example usage of the initiateOutboundCall function
-const userPhoneNumber = '+19177174489'; // Replace with the user's phone number.
-const twilioPhoneNumber = '+13058943349'; // Replace with your Twilio phone number.
+const userPhoneNumber = '+1234567890'; // Replace with the user's phone number.
+const twilioPhoneNumber = '+0987654321'; // Replace with your Twilio phone number.
 initiateOutboundCall(userPhoneNumber, twilioPhoneNumber); // Initiate an outbound call with the specified phone numbers.
